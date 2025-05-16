@@ -148,28 +148,66 @@ class ImageOCRModal extends Modal {
 
 		const container = contentEl.createDiv('image-ocr-container');
 		
-		// Camera button
-		const cameraButton = container.createEl('button', { text: 'Take Photo' });
-		cameraButton.addEventListener('click', async () => {
-			try {
-				const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-				const video = document.createElement('video');
-				video.srcObject = stream;
-				await video.play();
-				
-				const canvas = document.createElement('canvas');
-				canvas.width = video.videoWidth;
-				canvas.height = video.videoHeight;
-				canvas.getContext('2d')?.drawImage(video, 0, 0);
-				
-				stream.getTracks().forEach(track => track.stop());
-				const base64 = canvas.toDataURL('image/png').split(',')[1];
-				this.close();
-				await this.plugin.extractTextFromImage(base64);
-			} catch (error) {
-				new Notice('Error accessing camera: ' + error);
-			}
-		});
+		// Check if device is mobile
+		const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+		
+		// Camera button - only show on mobile
+		if (isMobile) {
+			const cameraButton = container.createEl('button', { text: 'Take Photo' });
+			cameraButton.addEventListener('click', async () => {
+				try {
+					console.log('Requesting camera access...');
+					const stream = await navigator.mediaDevices.getUserMedia({ 
+						video: { 
+							facingMode: 'environment', // Use back camera by default
+							width: { ideal: 1280 }, // Lower resolution for mobile
+							height: { ideal: 720 }
+						} 
+					});
+					console.log('Camera access granted');
+
+					const video = document.createElement('video');
+					video.srcObject = stream;
+					video.setAttribute('playsinline', ''); // Required for iOS
+					video.setAttribute('autoplay', '');
+					
+					// Wait for video to be ready
+					await new Promise((resolve) => {
+						video.onloadedmetadata = () => {
+							video.play();
+							resolve(null);
+						};
+					});
+
+					console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+					
+					const canvas = document.createElement('canvas');
+					canvas.width = video.videoWidth;
+					canvas.height = video.videoHeight;
+					
+					const context = canvas.getContext('2d');
+					if (!context) {
+						throw new Error('Could not get canvas context');
+					}
+					
+					context.drawImage(video, 0, 0);
+					console.log('Image captured');
+					
+					// Stop all tracks
+					stream.getTracks().forEach(track => {
+						track.stop();
+						console.log('Stopped track:', track.kind);
+					});
+					
+					const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]; // Use JPEG with compression for mobile
+					this.close();
+					await this.plugin.extractTextFromImage(base64);
+				} catch (error: any) {
+					console.error('Camera error:', error);
+					new Notice(`Camera error: ${error.message || error}`);
+				}
+			});
+		}
 
 		// File picker button
 		const fileButton = container.createEl('button', { text: 'Choose File' });
