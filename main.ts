@@ -1,7 +1,5 @@
 import { App, Modal, normalizePath, Notice, Plugin, TFile, Vault } from 'obsidian';
 import OpenAI from 'openai';
-import * as path from 'path';
-import * as fs from 'fs';
 
 const CONFIG_FILE = 'ai-text-extractor-config.md';
 
@@ -52,12 +50,10 @@ export default class ImageOCR extends Plugin {
 			const configContent = await readFileByName(this.app.vault, CONFIG_FILE);
 			if (configContent) {
 				this.settings = JSON.parse(configContent);
-				console.log(`Loaded settings: ${JSON.stringify(this.settings)}`);
 			} else {
 				// Create config file with defaults if it doesn't exist
 				const defaultConfig = JSON.stringify(DEFAULT_SETTINGS, null, 2);
 				await this.app.vault.create(CONFIG_FILE, defaultConfig);
-				console.log(`Created new config file with defaults: ${CONFIG_FILE}`);
 			}
 		} catch (error) {
 			console.warn('Error loading settings:', error);
@@ -114,10 +110,24 @@ export default class ImageOCR extends Plugin {
  				]
  			});
  			const extracted = response.choices?.[0]?.message?.content ?? '';
- 			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
- 			const fileName = `OCR-${timestamp}.md`;
- 			await this.app.vault.create(fileName, extracted);
- 			new Notice(`OCR result saved to ${fileName}`);
+ 			
+ 			// Get the active file
+ 			const activeFile = this.app.workspace.getActiveFile();
+ 			if (!activeFile) {
+ 				new Notice('No active file found. Please open a file first.');
+ 				return;
+ 			}
+
+ 			// Read current content
+ 			const currentContent = await this.app.vault.read(activeFile);
+ 			
+ 			// Append the extracted text with a separator
+ 			const separator = '\n\n---\n\n';
+ 			const newContent = currentContent + separator + extracted;
+ 			
+ 			// Save the updated content
+ 			await this.app.vault.modify(activeFile, newContent);
+ 			new Notice('Text extracted and appended to current file');
  		} catch (error: any) {
  			console.error(error);
  			new Notice(`Error extracting text: ${error.message ?? error}`);
@@ -154,8 +164,8 @@ class ImageOCRModal extends Modal {
 				
 				stream.getTracks().forEach(track => track.stop());
 				const base64 = canvas.toDataURL('image/png').split(',')[1];
-				await this.plugin.extractTextFromImage(base64);
 				this.close();
+				await this.plugin.extractTextFromImage(base64);
 			} catch (error) {
 				new Notice('Error accessing camera: ' + error);
 			}
@@ -173,8 +183,8 @@ class ImageOCRModal extends Modal {
 					const reader = new FileReader();
 					reader.onload = async (e) => {
 						const base64 = (e.target?.result as string).split(',')[1];
-						await this.plugin.extractTextFromImage(base64);
 						this.close();
+						await this.plugin.extractTextFromImage(base64);
 					};
 					reader.readAsDataURL(file);
 				}
