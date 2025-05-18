@@ -4,7 +4,7 @@
 	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
 	"description": "Extract text from images using OpenAI's GPT-4 Vision API with high accuracy",
-	"author": "Your Name",
+	"author": "Oakley Hall",
 	"authorUrl": "https://github.com/ohall",
 	"isDesktopOnly": false,
 	"js": "main.js",
