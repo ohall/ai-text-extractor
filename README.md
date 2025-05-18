@@ -31,7 +31,7 @@ A lightweight Obsidian plugin that uses OpenAI's GPT-4 Vision API to extract tex
 
 - OpenAI API key
 - Internet connection
-- Obsidian v1.0.0 or higher
+
 
 ## Limitations
 
