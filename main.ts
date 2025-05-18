@@ -1,4 +1,4 @@
-import { App, Modal, normalizePath, Notice, Plugin, TFile, Vault } from 'obsidian';
+import { App, normalizePath, Notice, Plugin, TFile, Vault } from 'obsidian';
 import OpenAI from 'openai';
 
 const CONFIG_FILE = 'ai-text-extractor-config.md';
@@ -22,11 +22,44 @@ export default class ImageOCR extends Plugin {
 			await this.loadSettings();		
 		});
 
+		// Add ribbon icon
+		this.addRibbonIcon('scan', 'Extract Text from Image', () => {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = 'image/*';
+			input.onchange = async (e) => {
+				const file = (e.target as HTMLInputElement).files?.[0];
+				if (file) {
+					const reader = new FileReader();
+					reader.onload = async (e) => {
+						const base64 = (e.target?.result as string).split(',')[1];
+						await this.extractTextFromImage(base64);
+					};
+					reader.readAsDataURL(file);
+				}
+			};
+			input.click();
+		});
+
 		this.addCommand({
 			id: 'capture-image-extract-text',
-			name: 'Capture Image and Extract Text',
+			name: 'Extract Text from Image',
 			callback: () => {
-				new ImageOCRModal(this.app, this).open();
+				const input = document.createElement('input');
+				input.type = 'file';
+				input.accept = 'image/*';
+				input.onchange = async (e) => {
+					const file = (e.target as HTMLInputElement).files?.[0];
+					if (file) {
+						const reader = new FileReader();
+						reader.onload = async (e) => {
+							const base64 = (e.target?.result as string).split(',')[1];
+							await this.extractTextFromImage(base64);
+						};
+						reader.readAsDataURL(file);
+					}
+				};
+				input.click();
 			}
  		});
 	}
@@ -132,108 +165,6 @@ export default class ImageOCR extends Plugin {
  			console.error(error);
  			new Notice(`Error extracting text: ${error.message ?? error}`);
  		}
-	}
-}
-class ImageOCRModal extends Modal {
-	plugin: ImageOCR;
-
-	constructor(app: App, plugin: ImageOCR) {
-		super(app);
-		this.plugin = plugin;
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.empty();
-
-		const container = contentEl.createDiv('image-ocr-container');
-		
-		// Check if device is mobile
-		const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-		
-		// Camera button - only show on mobile
-		if (isMobile) {
-			const cameraButton = container.createEl('button', { text: 'Take Photo' });
-			cameraButton.addEventListener('click', async () => {
-				try {
-					console.log('Requesting camera access...');
-					const stream = await navigator.mediaDevices.getUserMedia({ 
-						video: { 
-							facingMode: 'environment', // Use back camera by default
-							width: { ideal: 1280 }, // Lower resolution for mobile
-							height: { ideal: 720 }
-						} 
-					});
-					console.log('Camera access granted');
-
-					const video = document.createElement('video');
-					video.srcObject = stream;
-					video.setAttribute('playsinline', ''); // Required for iOS
-					video.setAttribute('autoplay', '');
-					
-					// Wait for video to be ready
-					await new Promise((resolve) => {
-						video.onloadedmetadata = () => {
-							video.play();
-							resolve(null);
-						};
-					});
-
-					console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-					
-					const canvas = document.createElement('canvas');
-					canvas.width = video.videoWidth;
-					canvas.height = video.videoHeight;
-					
-					const context = canvas.getContext('2d');
-					if (!context) {
-						throw new Error('Could not get canvas context');
-					}
-					
-					context.drawImage(video, 0, 0);
-					console.log('Image captured');
-					
-					// Stop all tracks
-					stream.getTracks().forEach(track => {
-						track.stop();
-						console.log('Stopped track:', track.kind);
-					});
-					
-					const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1]; // Use JPEG with compression for mobile
-					this.close();
-					await this.plugin.extractTextFromImage(base64);
-				} catch (error: any) {
-					console.error('Camera error:', error);
-					new Notice(`Camera error: ${error.message || error}`);
-				}
-			});
-		}
-
-		// File picker button
-		const fileButton = container.createEl('button', { text: 'Choose File' });
-		fileButton.addEventListener('click', async () => {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = 'image/*';
-			input.onchange = async (e) => {
-				const file = (e.target as HTMLInputElement).files?.[0];
-				if (file) {
-					const reader = new FileReader();
-					reader.onload = async (e) => {
-						const base64 = (e.target?.result as string).split(',')[1];
-						this.close();
-						await this.plugin.extractTextFromImage(base64);
-					};
-					reader.readAsDataURL(file);
-				}
-			};
-			input.click();
-		});
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
 	}
 }
 
