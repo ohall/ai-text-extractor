@@ -7,7 +7,6 @@ A lightweight Obsidian plugin that uses OpenAI's GPT-4 Vision API to extract tex
 - 🔍 **High Accuracy**: Uses OpenAI's GPT-4 Vision API for superior text extraction quality
 - 🚀 **Simple Interface**: One-click toolbar button for quick access
 - 📝 **Direct Integration**: Automatically appends extracted text to your current note
-- 🔒 **Privacy**: Processes images locally before sending to API
 - 🎯 **Focused Functionality**: Streamlined for image-to-text conversion
 
 ## Configuration
