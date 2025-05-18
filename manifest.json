@@ -8,5 +8,7 @@
 	"authorUrl": "https://github.com/ohall",
 	"isDesktopOnly": false,
 	"js": "main.js",
-	"css": "styles.css"
+	"css": "styles.css",
+	"repo": "ohall/ai-text-extractor",
+	"branch": "main"
 }
