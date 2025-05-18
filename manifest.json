@@ -1,7 +1,7 @@
 {
 	"id": "ai-text-extractor",
 	"name": "AI Text Extractor",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.0.0",
 	"description": "Extract text from images using OpenAI's GPT-4 Vision API with high accuracy",
 	"author": "Oakley Hall",
